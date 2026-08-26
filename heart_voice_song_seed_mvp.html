@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>心聲轉譯所 | Heart Voice Translation Lab</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=Noto+Serif+TC:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0a0c10;
+            --bg-card: rgba(18, 22, 32, 0.75);
+            --border-glow: rgba(226, 176, 120, 0.2);
+            --text-primary: #f0f2f5;
+            --text-muted: #9aa0a6;
+            --accent-warm: #e2b078;
+            --accent-rose: #d6818d;
+            --accent-purple: #9d8ec7;
+            --accent-cyan: #76c7c0;
+            --font-serif: 'Noto Serif TC', serif;
+            --font-sans: 'Noto Sans TC', sans-serif;
+            --transition-smooth: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-primary);
+            font-family: var(--font-sans);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        #bg-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 860px;
+            padding: 2rem 1.5rem;
+            z-index: 10;
+            position: relative;
+        }
+
+        .glass-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--border-glow);
+            border-radius: 24px;
+            padding: 2.5rem 2rem;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.05);
+            transition: var(--transition-smooth);
+            min-height: 580px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .app-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding-bottom: 1rem;
+        }
+
+        .brand-title {
+            font-family: var(--font-serif);
+            font-size: 1.25rem;
+            letter-spacing: 0.15em;
+            color: var(--accent-warm);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .step-indicator {
+            font-size: 0.85rem;
+            letter-spacing: 0.1em;
+            color: var(--text-muted);
+        }
+
+        .step-progress-bar {
+            width: 100%;
+            height: 3px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 2px;
+            margin-top: 8px;
+            overflow: hidden;
+        }
+
+        .step-progress-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--accent-warm), var(--accent-rose));
+            transition: width 0.6s ease;
+        }
+
+        .step-view {
+            display: none;
+            opacity: 0;
+            transform: translateY(15px);
+            transition: opacity 0.5s ease, transform 0.5s ease;
+            flex-direction: column;
+            flex-grow: 1;
+        }
+
+        .step-view.active {
+            display: flex;
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .step-title {
+            font-family: var(--font-serif);
+            font-size: 1.8rem;
+            font-weight: 400;
+            letter-spacing: 0.08em;
+            margin-bottom: 0.75rem;
+            color: var(--text-primary);
+            line-height: 1.4;
+        }
+
+        .step-subtitle {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            line-height: 1.6;
+            margin-bottom: 2rem;
+            font-weight: 300;
+        }
+
+        .option-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.25rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .option-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 1.25rem 1rem;
+            cursor: pointer;
+            transition: var(--transition-smooth);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            gap: 0.75rem;
+        }
+
+        .option-card:hover {
+            background: rgba(255, 255, 255, 0.07);
+            border-color: rgba(226, 176, 120, 0.4);
+            transform: translateY(-3px);
+        }
+
+        .option-card.selected {
+            background: rgba(226, 176, 120, 0.12);
+            border-color: var(--accent-warm);
+            box-shadow: 0 0 20px rgba(226, 176, 120, 0.15);
+        }
+
+        .option-icon {
+            font-size: 2rem;
+        }
+
+        .option-label {
+            font-size: 1rem;
+            letter-spacing: 0.05em;
+        }
+
+        .option-desc {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        textarea, input[type="text"] {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 14px;
+            padding: 1.25rem;
+            color: var(--text-primary);
+            font-family: var(--font-sans);
+            font-size: 1rem;
+            line-height: 1.6;
+            resize: none;
+            outline: none;
+            transition: var(--transition-smooth);
+        }
+
+        textarea:focus, input[type="text"]:focus {
+            border-color: var(--accent-warm);
+            box-shadow: 0 0 15px rgba(226, 176, 120, 0.2);
+        }
+
+        .app-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .btn {
+            padding: 0.85rem 2rem;
+            border-radius: 30px;
+            font-size: 0.95rem;
+            letter-spacing: 0.08em;
+            cursor: pointer;
+            transition: var(--transition-smooth);
+            border: none;
+            outline: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-family: var(--font-sans);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-muted);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-primary);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-warm), #c8955a);
+            color: #0d0f14;
+            font-weight: 500;
+            box-shadow: 0 4px 20px rgba(226, 176, 120, 0.25);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(226, 176, 120, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .player-container {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 18px;
+            padding: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            margin: 1rem 0;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .player-controls {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .play-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: var(--accent-warm);
+            color: #0a0c10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border: none;
+            font-size: 1.2rem;
+            transition: var(--transition-smooth);
+        }
+
+        .play-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .wave-visualizer {
+            flex-grow: 1;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .wave-bar {
+            flex: 1;
+            background: rgba(226, 176, 120, 0.3);
+            border-radius: 2px;
+            height: 20%;
+            transition: height 0.2s ease;
+        }
+
+        .wave-bar.active {
+            background: var(--accent-warm);
+        }
+
+        #cover-canvas {
+            display: none;
+        }
+
+        .song-card-preview {
+            width: 100%;
+            border-radius: 16px;
+            background: linear-gradient(145deg, rgba(30, 36, 50, 0.8), rgba(15, 18, 25, 0.9));
+            border: 1px solid var(--border-glow);
+            padding: 2rem;
+            margin: 1rem 0;
+            position: relative;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+        }
+
+        .lyric-box {
+            font-family: var(--font-serif);
+            line-height: 2;
+            color: #e8eaed;
+            white-space: pre-line;
+            font-size: 1.05rem;
+            max-height: 220px;
+            overflow-y: auto;
+            padding-right: 10px;
+        }
+
+        .lyric-box::-webkit-scrollbar {
+            width: 4px;
+        }
+        .lyric-box::-webkit-scrollbar-thumb {
+            background: rgba(226, 176, 120, 0.3);
+            border-radius: 2px;
+        }
+
+        @media (max-width: 600px) {
+            .glass-card {
+                padding: 1.5rem 1.25rem;
+            }
+            .step-title {
+                font-size: 1.4rem;
+            }
+            .option-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+<style>
+.keyword-wrap{margin-top:1rem}.mini-label{font-size:.82rem;color:var(--accent-warm);margin-bottom:.55rem}.summary-card,.seed-card{background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:1.25rem;margin-bottom:1rem}.summary-row{padding:.75rem 0;border-bottom:1px solid rgba(255,255,255,.06);line-height:1.7}.summary-row:last-child{border-bottom:0}.summary-k{color:var(--accent-warm);font-size:.8rem;letter-spacing:.08em}.song-section{padding:1rem 0;border-bottom:1px solid rgba(255,255,255,.06)}.song-section:last-child{border-bottom:0}.song-section h3{font-family:var(--font-serif);color:var(--accent-warm);font-size:1rem;margin-bottom:.45rem}.song-section p{color:#d7d9dd;line-height:1.8;font-size:.94rem}.hook{font-family:var(--font-serif);font-size:1.2rem!important;color:#fff!important;padding:1rem;border-left:2px solid var(--accent-rose);margin-top:.6rem}.custom-scene{display:none;margin-top:1rem}.note{font-size:.78rem;color:var(--text-muted);line-height:1.6}.count{font-size:.75rem;color:var(--text-muted);text-align:right;margin-top:.4rem}@media(max-width:640px){.glass-card{padding:1.4rem 1rem;min-height:650px}.step-title{font-size:1.45rem}.option-grid{grid-template-columns:1fr 1fr;gap:.7rem}.option-card{padding:1rem .6rem}.option-desc{font-size:.72rem}}
+</style>
+</head>
+<body>
+<canvas id="bg-canvas"></canvas>
+<div class="container"><div class="glass-card">
+<header class="app-header"><div class="brand-title">✦ 心聲轉譯所</div><div><div class="step-indicator" id="step-indicator">INTRO</div><div class="step-progress-bar"><div class="step-progress-fill" id="progress"></div></div></div></header>
+<main>
+<section class="step-view active" id="view-step-0"><h1 class="step-title">如果現在的你，是一首歌呢？</h1><p class="step-subtitle">不用樂理，不需要會唱歌。你只需要知道，現在的你是什麼感覺。跟著直覺走，找出屬於你的「歌曲種子」。</p><div class="summary-card"><div class="summary-row">這不是測驗，也沒有標準答案。</div><div class="summary-row">你的選擇、心聲與畫面，會組成不同的歌曲大綱。</div><div class="summary-row">第一版不連接 AI API，你寫下的內容只在這個瀏覽器頁面中用來組合結果。</div></div></section>
+<section class="step-view" id="view-step-1"><h2 class="step-title">STEP 1｜今天的你，是什麼天氣？</h2><p class="step-subtitle">不用解釋。選一個最接近現在感覺的天氣。</p><div class="option-grid" id="weather-grid"></div></section>
+<section class="step-view" id="view-step-2"><h2 class="step-title">STEP 2｜哪一句話，最像近期的你？</h2><p class="step-subtitle">先從選擇開始，不需要立刻把心事說清楚。</p><div class="option-grid" id="emotion-grid"></div></section>
+<section class="step-view" id="view-step-3"><h2 class="step-title">STEP 3｜如果不用讓任何人知道，你最想說什麼？</h2><p class="step-subtitle">這句話不需要分享，也不需要解釋。暫時不用顧慮任何人的眼光，寫下此刻最想說的話。</p><textarea id="heart" rows="5" maxlength="150" placeholder="寫下你的心聲……"></textarea><div class="count"><span id="heart-count">0</span>/150</div><div class="keyword-wrap"><div class="mini-label">從剛才那段話裡，你最想留下哪個詞、東西或畫面？</div><input id="keyword" type="text" maxlength="30" placeholder="例如：便利商店、那件外套、第一次說不、回家的路"><div class="count"><span id="keyword-count">0</span>/30</div></div></section>
+<section class="step-view" id="view-step-4"><h2 class="step-title">STEP 4｜如果這句心聲變成一個畫面，你看見什麼？</h2><p class="step-subtitle">不用想完整故事。選一個最接近你腦中感覺的畫面。</p><div class="option-grid" id="scene-grid"></div><div class="custom-scene" id="custom-scene-wrap"><input id="custom-scene" type="text" maxlength="50" placeholder="你看見什麼？一個地方、一個物件、一個瞬間都可以。"></div></section>
+<section class="step-view" id="view-step-5"><h2 class="step-title">STEP 5｜把剛才的心聲放在一起看看</h2><p class="step-subtitle">好像有一首歌，開始有輪廓了。</p><div class="summary-card" id="reflection"></div></section>
+<section class="step-view" id="view-step-6"><h2 class="step-title">STEP 6｜這首歌，你希望它怎麼陪你？</h2><p class="step-subtitle">不是選曲風，而是決定這首歌最後想陪你停在哪裡。</p><div class="option-grid" id="direction-grid"></div></section>
+<section class="step-view" id="view-step-7"><h2 class="step-title">STEP 7｜如果你的心聲是一首歌……</h2><p class="step-subtitle">前面的選擇會組成不同的歌曲 DNA。這不是完整歌詞，而是一顆可以繼續長大的歌曲種子。</p><div class="seed-card" id="song-seed"></div></section>
+</main>
+<div class="nav-buttons"><button class="btn btn-secondary" id="prev" onclick="prevStep()">← 上一步</button><button class="btn btn-primary" id="next" onclick="nextStep()">開始轉譯 →</button></div>
+</div></div>
+<script>
+const weather=[['sun','☀️','晴朗暖陽','輕盈、明亮'],['after','🌤️','雨後微光','有些事情正在過去'],['rain','🌧️','綿綿細雨','淡淡低落'],['fog','🌫️','起霧晨曦','看不清楚、迷惘'],['storm','⛈️','遠方暴雨','強烈、混亂'],['moon','🌙','靜謐月夜','安靜、內省']];
+const emotion=[['tired','疲憊','我沒事，只是有點累。'],['lost','迷惘','有些事情，我還沒有想清楚。'],['miss','想念','最近常常想起某個人／某段時光。'],['change','改變','最近的我，好像正在慢慢改變。'],['happy','開心','最近有一些小事，讓我覺得很開心。'],['expect','期待','我好像正在期待某件事情發生。']];
+const scenes=[['room','🌃','凌晨還亮著燈的房間'],['platform','🚉','沒有人的月台'],['street','🌧️','雨停之後的街道'],['sea','🌊','海邊的一張空椅子'],['dawn','🌅','剛開始變亮的天空'],['taillight','🚗','遠方正在開走的車尾燈'],['custom','✏️','我腦中有自己的畫面']];
+const directions=[['quiet','🌙','陪我安靜一下','不急著變好，只想待在這個情緒裡'],['release','🌊','陪我慢慢放下','讓一直抓著我的東西鬆一點'],['forward','☀️','陪我重新往前','我想要一點點力量'],['hold','🫂','好好抱抱現在的我','不解決問題，只想被理解'],['remember','✨','幫我記住這個瞬間','不一定改變什麼，只想把現在留下來']];
+const S={step:0,weather:null,emotion:null,scene:null,direction:null};
+function cards(id,data,key){document.getElementById(id).innerHTML=data.map(x=>`<div class="option-card" data-key="${x[0]}" onclick="choose('${key}','${x[0]}',this)"><span class="option-icon">${x[1]||''}</span><span class="option-label">${key==='emotion'?x[1]:x[2]}</span><span class="option-desc">${key==='emotion'?x[2]:(x[3]||'')}</span></div>`).join('')}
+cards('weather-grid',weather,'weather');cards('emotion-grid',emotion,'emotion');cards('scene-grid',scenes,'scene');cards('direction-grid',directions,'direction');
+function choose(k,v,el){S[k]=v;el.parentElement.querySelectorAll('.option-card').forEach(e=>e.classList.remove('selected'));el.classList.add('selected');if(k==='scene')document.getElementById('custom-scene-wrap').style.display=v==='custom'?'block':'none'}
+const by=(a,k)=>a.find(x=>x[0]===k);
+function sceneText(){if(S.scene==='custom')return document.getElementById('custom-scene').value.trim()||'你自己腦中的畫面';return by(scenes,S.scene)?.[2]||''}
+function validate(){if(S.step===1&&!S.weather)return'先選一種天氣';if(S.step===2&&!S.emotion)return'先選一句最像你的話';if(S.step===3&&!document.getElementById('heart').value.trim())return'先留下一句真正想說的話';if(S.step===4&&!S.scene)return'先選一個畫面';if(S.step===4&&S.scene==='custom'&&!document.getElementById('custom-scene').value.trim())return'寫下你腦中的畫面';if(S.step===6&&!S.direction)return'先選擇希望歌曲怎麼陪你';return''}
+function nextStep(){const e=validate();if(e){alert(e);return}if(S.step<7){S.step++;render()}else{downloadSeed()}}
+function prevStep(){if(S.step>0){S.step--;render()}}
+function render(){document.querySelectorAll('.step-view').forEach(v=>v.classList.remove('active'));document.getElementById('view-step-'+S.step).classList.add('active');document.getElementById('step-indicator').textContent=S.step===0?'INTRO':`STEP ${S.step} / 7`;document.getElementById('progress').style.width=(S.step/7*100)+'%';document.getElementById('prev').style.visibility=S.step===0?'hidden':'visible';document.getElementById('next').textContent=S.step===0?'開始轉譯 →':S.step===7?'保存歌曲種子':'下一步 →';if(S.step===5)reflect();if(S.step===7)buildSeed()}
+function reflect(){const w=by(weather,S.weather),e=by(emotion,S.emotion),h=document.getElementById('heart').value.trim(),k=document.getElementById('keyword').value.trim();document.getElementById('reflection').innerHTML=`<div class="summary-row"><div class="summary-k">今天的內在天氣</div>${w[1]} ${w[2]}</div><div class="summary-row"><div class="summary-k">最近的你</div>${e[2]}</div><div class="summary-row"><div class="summary-k">真正寫下的話</div>「${esc(h)}」</div>${k?`<div class="summary-row"><div class="summary-k">你想留下的關鍵詞</div>${esc(k)}</div>`:''}<div class="summary-row"><div class="summary-k">這句心聲的畫面</div>${esc(sceneText())}</div>`}
+const verseMood={sun:['光線開始把眼前照清楚','今天像還留著一些可以選擇的空間'],after:['事情像剛經過一場變化','空氣裡還留著剛才的痕跡'],rain:['細小的聲音反覆出現','情緒沒有爆發，只是一直待著'],fog:['遠處還看不清楚','眼前只剩幾步是確定的'],storm:['外在與內在都帶著不穩定','原本的節奏像被打亂'],moon:['周圍安靜下來','終於有一段不用立刻回答任何人的時間']};
+const sceneAction={room:'故事從還亮著燈的房間開始，熟悉的東西都在原位，主角卻遲遲沒有讓這一天結束。',platform:'故事從空月台開始，主角停在等待與出發之間，望著還沒出現的下一班車。',street:'故事從雨後的街道開始，腳步經過積水與熟悉路口，一些平常忽略的細節變得清楚。',sea:'故事從海邊的空椅子開始，主角暫時坐下，把視線交給遠方，而不是急著做決定。',dawn:'故事從天空剛開始變亮的時刻開始，新的一天靠近了，但昨天留下的感覺還沒有完全離開。',taillight:'故事從逐漸變小的車尾燈開始，主角站在原地，看著某件事往遠處移動。'};
+const pre={tired:{room:'明明沒有什麼非得現在完成，卻還是不知道怎麼真正停下來。',platform:'第一次冒出「如果我晚一點到，也可以嗎？」的念頭。',street:'雨停了，自己卻還維持著躲雨的姿勢，緊繃好像早已成為習慣。',sea:'坐下來才發現，自己已經很久沒有什麼都不做。',dawn:'又撐過一天，這次卻不想因為天亮就立刻要求自己振作。',taillight:'看著別人的速度繼續往前，第一次沒有急著追上。'},lost:{room:'想了很多遍，答案卻沒有因此更清楚，真正困住自己的也許是「一定要立刻知道」。',platform:'真正猶豫的不是目的地，而是害怕選了一條路，就失去其他可能。',street:'沒有真的迷路，只是開始不知道自己是不是還想走原來那條路。',sea:'原本想整理出答案，最後卻冒出更多問題。',dawn:'時間會繼續走，卻不代表現在就必須決定。',taillight:'開始分不清，是自己沒有方向，還是一直拿別人的路當地圖。'},miss:{room:'安靜下來後，一些平常不會想起的細節突然變得很清楚。',platform:'等待讓某段記憶重新出現，開始想如果再次遇見，第一句會說什麼。',street:'想念突然藏進一些非常普通的小事裡。',sea:'某個瞬間，很自然地想到「如果那個人也在就好了」。',dawn:'不是想回到過去，只是突然很想再看一次當時的自己。',taillight:'真正留著的，也許是那句一直沒有說完的話。'},change:{room:'周圍還是熟悉的東西，自己的想法卻已經和以前不同。',platform:'還沒真正離開，也已經不像以前那麼想留下。',street:'同一條路，心裡的反應卻跟以前不一樣。',sea:'才發現自己改變的不是答案，而是面對答案的方式。',dawn:'改變第一次不像失去，而比較像騰出位置。',taillight:'原本會想追上的東西，這次卻沒有動。'},happy:{room:'明明已經很晚，卻因為今天的小事還捨不得睡。',platform:'平常無聊的等待，今天卻意外變得舒服。',street:'一些很普通的東西突然變得有趣，快樂沒有重大理由卻很想留下。',sea:'沒有人陪也沒有覺得少了什麼，只是坐著就很好。',dawn:'不是因為知道會發生什麼，而是單純想看看接下來。',taillight:'快樂停在一個沒有被拍下來的瞬間。'},expect:{room:'腦中一直偷偷預演還沒發生的事情，時間第一次讓人希望走快一點。',platform:'最讓人心跳加快的不是抵達，而是知道自己快要出發。',street:'原本停住的事情好像又有可能繼續，開始重新想像接下來。',sea:'期待不是知道答案，而是開始願意相信有些事情值得等。',dawn:'還沒真正發生，就已經開始記住等待它的感覺。',taillight:'下一次離開原地的人，也可能是自己。'}};
+const chorus={tired:{quiet:['今天可以暫時停止回應外界。','今天先別問我答案，讓時間自己走吧。'],release:['開始鬆開「什麼都必須由我撐住」的習慣。','有些重量，今天不帶回家。'],forward:['不是逼自己撐，而是重新決定力氣值得花在哪裡。','下一步，我想走向自己選的地方。'],hold:['承認那些說「沒事」的時候，其實真的很累。','我說沒事太久，差點連自己都相信。'],remember:['不美化疲憊，把這個真實的自己保存下來。','記住今天的我，連笑都有一點慢。']},lost:{quiet:['現在不知道答案，不代表必須立刻找到。','今晚先別替明天決定。'],release:['放掉「一定存在正確答案」的壓力。','如果沒有標準答案，我想選一次我的。'],forward:['不等整張地圖出現，先走目前看得到的一步。','看不清遠方，就先走到下一個路口。'],hold:['猶豫不是失敗，只是還在理解真正想要什麼。','我只是還沒決定，不是走丟了。'],remember:['保存人生還充滿問號的這個階段。','原來不知道答案的我，也曾站在這裡。']},miss:{quiet:['不急著把想念處理掉，只允許它今晚再出現一下。','今晚如果又想起你，就讓你多待一會。'],release:['不需要忘記，只是不再要求記憶回到原來的位置。','我沒有忘記，只是不再往回走。'],forward:['帶著曾經存在過的東西繼續生活。','我帶著那段我們，去沒去過的以後。'],hold:['接受自己偶爾仍然會想起，而不是責怪自己。','原來想起你，不代表我又回去了。'],remember:['不處理、不告別，只保存值得留下的片段。','別急著說再見，我只是想把這一幕留久一點。']},change:{quiet:['不急著定義自己變成了誰。','先別替新的我取名字。'],release:['接受有些舊東西已經不再適合現在的自己。','穿不下的昨天，就留在昨天。'],forward:['主動走向新的自己，即使還不知道最後會變成什麼。','我還沒成為誰，但已經不是昨天的我。'],hold:['接納改變過程中的陌生、不確定與反覆。','偶爾認不出自己，也沒關係。'],remember:['保存「正在改變」而非完成蛻變的自己。','拍下還在半路的我，別等故事完成。']},happy:{quiet:['不需要把快樂放大，只想安靜享受。','今天沒有大事，我卻捨不得它結束。'],release:['一些小小快樂讓原本緊抓的事情沒那麼重要。','笑出來的那一秒，我忘了原本在煩什麼。'],forward:['小小的好事讓自己重新對接下來產生興趣。','如果明天也有驚喜，我想親自去看看。'],hold:['允許自己單純開心，不需要充分理由。','沒什麼了不起，但我今天真的很開心。'],remember:['把普通卻很幸福的一天留下來。','別等特別的日子，今天就值得被記得。']},expect:{quiet:['享受事情發生以前，那段只有自己知道的期待。','先別讓明天來，我還想期待久一點。'],release:['不再要求期待中的事情一定按照想像發生。','我會期待，但不再替結局排練。'],forward:['把期待轉化成主動靠近某件事情的力量。','這一次，我不只站在原地等。'],hold:['允許自己再次有所期待，即使未來仍未知。','原來我還願意期待，這件事就很好。'],remember:['保存「還沒有得到，所以一切都有可能」的階段。','故事還沒開始，我已經喜歡現在。']}};
+const ending={tired:{quiet:'事情沒有消失，最後只是把一直亮著的螢幕關掉，讓今天停在這裡。',release:'原本緊握著的東西被暫時放到一旁，今晚決定不再全部帶著走。',forward:'主角只帶走自己願意繼續投入的部分，下一步不是撐下去，而是重新選擇。',hold:'最後沒有再說「我沒事」，而是替自己留下一段不用表現得很好的時間。',remember:'鏡頭停在一個普通、甚至有點狼狽的自己，沒有美化，只決定留下來。'},lost:{quiet:'路線仍沒有決定，主角把反覆查看的地圖收起來，今晚先不替未來選方向。',release:'寫滿「應該」的選項被慢慢劃掉，最後留下的是可以重新選擇的空白。',forward:'仍看不到終點，只選一個目前最想靠近的方向，先走出去看看。',hold:'最後仍站在岔路口，但不再因為沒有決定而責怪自己。',remember:'故事沒有答案，最後停在「還不知道」的自己。'},miss:{quiet:'某個熟悉片段再次浮現，主角不趕走它，只讓記憶陪自己待到歌曲結束。',release:'原本反覆回看的東西被收回原來的位置，沒有丟掉，只是不再一直拿出來確認。',forward:'主角帶著那段記憶回到現在，它仍存在，但不再決定接下來所有方向。',hold:'又想起時沒有責怪自己，最後只是承認：「原來今天還是會想起。」',remember:'故事停在一個最普通、卻最捨不得忘記的小細節，沒有告別，只把它留在歌裡。'},change:{quiet:'舊的東西還在，新的東西也才剛開始，歌曲停在兩者並存的狀態。',release:'一件曾經很適合自己的東西被留在原位，不是否定過去，只是不需要全部帶走。',forward:'主角做了一個很小、但以前不會做的選擇，第一次按照現在的自己行動。',hold:'面對還有點陌生的自己，主角沒有急著變回以前。',remember:'故事刻意停在改變尚未完成的地方，是一張「正在變化中」的照片。'},happy:{quiet:'熱鬧慢慢結束後，主角回到安靜裡，嘴角還留著剛才的笑。',release:'原本掛在心上的小煩惱突然顯得沒那麼大，主角暫時忘了把它撿回來。',forward:'今天的小快樂讓主角自然開始安排下一件想做的事。',hold:'主角沒有分析為什麼開心，也沒有擔心何時結束，只允許今天很好。',remember:'鏡頭停在一個看起來不值得拍照的小瞬間，但主角決定：就是這個，我想記得。'},expect:{quiet:'期待的事情仍沒發生，主角停止確認時間，讓「還沒發生」再多存在一會。',release:'腦中排練好的結局被慢慢擦掉，期待仍在，但不再要求照想像發生。',forward:'主角做了第一個真正靠近期待的行動，等待開始變成參與。',hold:'最後注意到，比結果更珍貴的是自己竟然又開始期待某件事情。',remember:'事情還沒有揭曉，故事停在答案出現以前。'}};
+function titleFor(){const k=document.getElementById('keyword').value.trim();const e=S.emotion,d=S.direction;if(k){const forms={quiet:`${k}，先留在今晚`,release:`把${k}放回原來的位置`,forward:`往${k}的方向`,hold:`關於${k}，我想慢一點`,remember:`我想記得${k}`};return forms[d]}const hooks=chorus[e][d][1];return hooks.replace(/[，。！？]/g,' ').trim().split(' ').slice(0,1).join('').slice(0,12)||'還沒寫完的歌'}
+function buildSeed(){const w=by(weather,S.weather),e=by(emotion,S.emotion),d=by(directions,S.direction),h=document.getElementById('heart').value.trim(),k=document.getElementById('keyword').value.trim(),sc=sceneText();let verse;if(S.scene==='custom'){verse=`故事從「${esc(sc)}」開始。${verseMood[S.weather][0]}，${verseMood[S.weather][1]}。`}else{verse=`${sceneAction[S.scene]} ${verseMood[S.weather][0]}，${verseMood[S.weather][1]}。`}let p=S.scene==='custom'?`這個畫面開始承接「${e[1]}」的狀態；真正重要的不是把它解釋清楚，而是讓「${esc(k||h.slice(0,18))}」成為故事裡最個人的線索。`:pre[S.emotion][S.scene];const c=chorus[S.emotion][S.direction];const end=ending[S.emotion][S.direction];document.getElementById('song-seed').innerHTML=`<div class="summary-k">暫定歌名</div><h2 class="step-title" style="margin-top:.35rem">《${esc(titleFor())}》</h2><div class="song-section"><h3>VERSE 1｜故事從哪裡開始</h3><p>${verse}</p></div><div class="song-section"><h3>PRE-CHORUS｜真正卡住的是什麼</h3><p>${p}</p></div><div class="song-section"><h3>CHORUS｜真正想唱出來的是什麼</h3><p>${c[0]}</p><p class="hook">「${c[1]}」</p></div><div class="song-section"><h3>ENDING｜最後停在哪裡</h3><p>${end}</p></div><div class="song-section"><h3>你的原始心聲</h3><p>「${esc(h)}」</p>${k?`<p class="note" style="margin-top:.5rem">心聲關鍵詞：${esc(k)}</p>`:''}</div><p class="note" style="margin-top:1rem">🌱 這還不是完整歌曲，而是由你的天氣、狀態、心聲、畫面與陪伴方向組成的「歌曲種子」。</p>`}
+function esc(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function downloadSeed(){const text=document.getElementById('song-seed').innerText;const b=new Blob([text],{type:'text/plain;charset=utf-8'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='心聲轉譯所_歌曲種子.txt';a.click();URL.revokeObjectURL(a.href)}
+document.getElementById('heart').addEventListener('input',e=>document.getElementById('heart-count').textContent=e.target.value.length);document.getElementById('keyword').addEventListener('input',e=>document.getElementById('keyword-count').textContent=e.target.value.length);
+render();
+const canvas=document.getElementById('bg-canvas'),ctx=canvas.getContext('2d');let pts=[];function resize(){canvas.width=innerWidth;canvas.height=innerHeight;pts=Array.from({length:45},()=>({x:Math.random()*innerWidth,y:Math.random()*innerHeight,r:Math.random()*2+1,vx:(Math.random()-.5)*.2,vy:(Math.random()-.5)*.2,a:Math.random()*.35+.08}))}function draw(){ctx.clearRect(0,0,canvas.width,canvas.height);pts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;if(p.x<0||p.x>innerWidth)p.vx*=-1;if(p.y<0||p.y>innerHeight)p.vy*=-1;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle=`rgba(226,176,120,${p.a})`;ctx.fill()});requestAnimationFrame(draw)}addEventListener('resize',resize);resize();draw();
+</script></body></html>
