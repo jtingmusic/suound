@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>心聲轉譯所 | Heart Voice Translation Lab</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=Noto+Serif+TC:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0a0c10;
+            --bg-card: rgba(18, 22, 32, 0.75);
+            --border-glow: rgba(226, 176, 120, 0.2);
+            --text-primary: #f0f2f5;
+            --text-muted: #9aa0a6;
+            --accent-warm: #e2b078;
+            --accent-rose: #d6818d;
+            --accent-purple: #9d8ec7;
+            --accent-cyan: #76c7c0;
+            --font-serif: 'Noto Serif TC', serif;
+            --font-sans: 'Noto Sans TC', sans-serif;
+            --transition-smooth: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-primary);
+            font-family: var(--font-sans);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        #bg-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 860px;
+            padding: 2rem 1.5rem;
+            z-index: 10;
+            position: relative;
+        }
+
+        .glass-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--border-glow);
+            border-radius: 24px;
+            padding: 2.5rem 2rem;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.05);
+            transition: var(--transition-smooth);
+            min-height: 580px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .app-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding-bottom: 1rem;
+        }
+
+        .brand-title {
+            font-family: var(--font-serif);
+            font-size: 1.25rem;
+            letter-spacing: 0.15em;
+            color: var(--accent-warm);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .step-indicator {
+            font-size: 0.85rem;
+            letter-spacing: 0.1em;
+            color: var(--text-muted);
+        }
+
+        .step-progress-bar {
+            width: 100%;
+            height: 3px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 2px;
+            margin-top: 8px;
+            overflow: hidden;
+        }
+
+        .step-progress-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--accent-warm), var(--accent-rose));
+            transition: width 0.6s ease;
+        }
+
+        .step-view {
+            display: none;
+            opacity: 0;
+            transform: translateY(15px);
+            transition: opacity 0.5s ease, transform 0.5s ease;
+            flex-direction: column;
+            flex-grow: 1;
+        }
+
+        .step-view.active {
+            display: flex;
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .step-title {
+            font-family: var(--font-serif);
+            font-size: 1.8rem;
+            font-weight: 400;
+            letter-spacing: 0.08em;
+            margin-bottom: 0.75rem;
+            color: var(--text-primary);
+            line-height: 1.4;
+        }
+
+        .step-subtitle {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            line-height: 1.6;
+            margin-bottom: 2rem;
+            font-weight: 300;
+        }
+
+        .option-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.25rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .option-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 1.25rem 1rem;
+            cursor: pointer;
+            transition: var(--transition-smooth);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            gap: 0.75rem;
+        }
+
+        .option-card:hover {
+            background: rgba(255, 255, 255, 0.07);
+            border-color: rgba(226, 176, 120, 0.4);
+            transform: translateY(-3px);
+        }
+
+        .option-card.selected {
+            background: rgba(226, 176, 120, 0.12);
+            border-color: var(--accent-warm);
+            box-shadow: 0 0 20px rgba(226, 176, 120, 0.15);
+        }
+
+        .option-icon {
+            font-size: 2rem;
+        }
+
+        .option-label {
+            font-size: 1rem;
+            letter-spacing: 0.05em;
+        }
+
+        .option-desc {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        textarea, input[type="text"] {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 14px;
+            padding: 1.25rem;
+            color: var(--text-primary);
+            font-family: var(--font-sans);
+            font-size: 1rem;
+            line-height: 1.6;
+            resize: none;
+            outline: none;
+            transition: var(--transition-smooth);
+        }
+
+        textarea:focus, input[type="text"]:focus {
+            border-color: var(--accent-warm);
+            box-shadow: 0 0 15px rgba(226, 176, 120, 0.2);
+        }
+
+        .app-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .btn {
+            padding: 0.85rem 2rem;
+            border-radius: 30px;
+            font-size: 0.95rem;
+            letter-spacing: 0.08em;
+            cursor: pointer;
+            transition: var(--transition-smooth);
+            border: none;
+            outline: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-family: var(--font-sans);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-muted);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-primary);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-warm), #c8955a);
+            color: #0d0f14;
+            font-weight: 500;
+            box-shadow: 0 4px 20px rgba(226, 176, 120, 0.25);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(226, 176, 120, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .player-container {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 18px;
+            padding: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            margin: 1rem 0;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .player-controls {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .play-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: var(--accent-warm);
+            color: #0a0c10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border: none;
+            font-size: 1.2rem;
+            transition: var(--transition-smooth);
+        }
+
+        .play-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .wave-visualizer {
+            flex-grow: 1;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .wave-bar {
+            flex: 1;
+            background: rgba(226, 176, 120, 0.3);
+            border-radius: 2px;
+            height: 20%;
+            transition: height 0.2s ease;
+        }
+
+        .wave-bar.active {
+            background: var(--accent-warm);
+        }
+
+        #cover-canvas {
+            display: none;
+        }
+
+        .song-card-preview {
+            width: 100%;
+            border-radius: 16px;
+            background: linear-gradient(145deg, rgba(30, 36, 50, 0.8), rgba(15, 18, 25, 0.9));
+            border: 1px solid var(--border-glow);
+            padding: 2rem;
+            margin: 1rem 0;
+            position: relative;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+        }
+
+        .lyric-box {
+            font-family: var(--font-serif);
+            line-height: 2;
+            color: #e8eaed;
+            white-space: pre-line;
+            font-size: 1.05rem;
+            max-height: 220px;
+            overflow-y: auto;
+            padding-right: 10px;
+        }
+
+        .lyric-box::-webkit-scrollbar {
+            width: 4px;
+        }
+        .lyric-box::-webkit-scrollbar-thumb {
+            background: rgba(226, 176, 120, 0.3);
+            border-radius: 2px;
+        }
+
+        @media (max-width: 600px) {
+            .glass-card {
+                padding: 1.5rem 1.25rem;
+            }
+            .step-title {
+                font-size: 1.4rem;
+            }
+            .option-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+<style>
+.song-result{background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.09);border-radius:20px;padding:1.4rem;margin-top:1rem}.song-block{padding:1rem 0;border-bottom:1px solid rgba(255,255,255,.07)}.song-block:last-child{border-bottom:0}.song-label{font-size:.78rem;letter-spacing:.12em;color:var(--accent-warm);margin-bottom:.55rem}.song-lines{font-family:var(--font-serif);line-height:2;color:#f3f0ec}.hook-line{font-weight:700;color:#fff}.result-note{font-size:.86rem;line-height:1.8;color:var(--text-muted);background:rgba(0,0,0,.12);border-radius:14px;padding:1rem;margin-bottom:1rem}.cta-row{display:flex;gap:.8rem;flex-wrap:wrap;margin-top:1.3rem}.mini{font-size:.78rem;color:var(--text-muted);margin-top:.8rem}
+</style></head>
+<body>
+<canvas id="bg-canvas"></canvas>
+<div class="container"><div class="glass-card">
+<header class="app-header"><div class="brand-title">✦ 心聲轉譯所</div><div><div class="step-indicator" id="step-indicator-text">INTRO</div><div class="step-progress-bar"><div class="step-progress-fill" id="progress-fill"></div></div></div></header>
+<main id="main"></main>
+<div class="nav-buttons" id="nav"><button class="btn btn-secondary" id="prev">← 上一步</button><button class="btn btn-primary" id="next">開始 →</button></div>
+</div></div>
+<script>
+const weather=[
+ ['sun','☀️','晴朗暖陽','最近心裡有一些明亮'],['after','🌤️','雨後微光','好像有些事情正在過去'],['rain','🌧️','綿綿細雨','有一點低落，但說不上來'],['fog','🌫️','起霧晨曦','還看不清楚自己要去哪裡'],['storm','⛈️','遠方暴雨','心裡有些事情正在翻湧'],['moon','🌙','靜謐月夜','最近比較安靜，常常想很多']];
+const states=[
+ ['tired','😮‍💨','疲憊','最近有點累，只想喘口氣'],['lost','🌫️','迷惘','不知道接下來該往哪裡走'],['miss','💭','想念','最近常常想起某個人或某段時光'],['change','🌱','改變','好像正在慢慢變成不一樣的自己'],['happy','☺️','開心','最近有一些小事，讓我覺得很好'],['expect','✨','期待','有一件事，光想到就有點期待']];
+const truths={
+ tired:['我真的很想休息一下','我已經努力很久了','有些事情我不想再撐了','我希望有人可以懂我','今天可不可以先什麼都不要管'],
+ lost:['我不知道自己真正想要什麼','好像每條路都可以，又好像都不對','我很怕自己做錯決定','看著別人往前，我有點著急','我想照自己的方式走一次'],
+ miss:['其實我還是會想起你','有些話我一直沒有說出口','我不是想回去，只是還沒有忘記','如果可以再見一次就好了','我想把那段時間好好留下來'],
+ change:['我好像已經不是以前的我了','有些事情，我不想再勉強自己','我開始知道自己不要什麼了','我有點害怕改變，卻也不想回去','這一次，我想選自己真正想要的'],
+ happy:['最近的日子，好像比想像中可愛','原來幸福可以只是這麼普通','我想把現在的感覺記久一點','最近常常會因為小事偷偷開心','好像沒有發生大事，但我很喜歡現在'],
+ expect:['我已經開始偷偷想像那一天了','我有點害怕，但還是很想試試看','好希望時間可以走快一點','這一次，我想主動靠近看看','不知道會發生什麼，反而讓我很期待']};
+const scenes={
+ tired:[['room','🌃','凌晨還亮著燈的房間'],['msg','📱','沒回完的訊息'],['train','🚇','下班後空蕩的車廂'],['sofa','🛋️','回家後直接躺下'],['coffee','☕','放涼很久的咖啡']],
+ lost:[['platform','🚉','不知道搭哪班車的月台'],['fork','🛣️','分成兩邊的岔路'],['mist','🌫️','被霧遮住的遠方'],['map','🗺️','攤開卻看不懂的地圖'],['light','🚦','一直沒有往前走的路口']],
+ miss:[['seat','🪑','身旁空著的位置'],['chat','💬','停在很久以前的聊天紀錄'],['corner','🌧️','曾經一起走過的街口'],['box','📦','一直沒有丟掉的東西'],['back','🚗','越來越遠的背影']],
+ change:[['door','🚪','第一次關上的門'],['shirt','👕','已經不再適合的舊衣服'],['mirror','🪞','鏡子裡有點陌生的自己'],['packing','📦','正在收拾的房間'],['road','🚶','一個人走向另一條路']],
+ happy:[['walk','🍜','吃完飯一起走回家的路'],['sunroom','☀️','陽光剛好照進房間'],['store','🛒','深夜一起逛便利商店'],['laugh','😂','笑到停不下來的瞬間'],['evening','🌇','沒有特別安排的傍晚']],
+ expect:[['bag','🧳','還沒出發的行李箱'],['date','📅','被圈起來的某一天'],['ticket','🎫','收在手機裡的車票'],['predawn','🌅','天快亮以前的天空'],['pins','📍','地圖上存滿想去的地方']]};
+const endings=[['quiet','🌙','就停在這裡，不需要答案'],['release','🌊','我想慢慢把它放下'],['forward','🚶','我想試著往前走'],['hold','🫂','我想對現在的自己好一點'],['remember','📸','我不想改變它，只想記住']];
+const hooks={
+ tired:['今天先讓我休息一下','我已經努力很久了','有些重量今天不帶走','其實我也想被好好懂得','今天先什麼都不要管'],
+ lost:['我只是還沒決定，不是走丟了','沒有哪條路一定要現在選','如果走錯了，也可以再轉彎','別人的終點，不是我的時間','這一次我想走自己的方向'],
+ miss:['其實我還是會想起你','有些話還停在那裡','我不是回頭，只是還記得','如果再見一次就好了','我想把那段時間留在歌裡'],
+ change:['我已經不是昨天的我','這一次我不想再勉強','我開始知道什麼不要了','我會害怕，但我不想回去','這一次我想選我自己'],
+ happy:['原來今天也可以這麼可愛','幸福原來可以這麼普通','我想把現在記久一點','沒什麼大事，我卻一直在笑','今天沒有特別，卻剛剛好'],
+ expect:['我已經開始想像那一天','我有點害怕，還是想試試看','好想快一點走到那一天','這一次我想主動靠近','故事還沒開始，我已經期待']};
+const sceneLines={
+ room:'凌晨的燈還亮著，房間比外面安靜',msg:'訊息停在螢幕上，我卻沒有力氣回答',train:'最後一班車晃著，把一天慢慢帶遠',sofa:'門一關上，我連鞋都不想好好放',coffee:'桌上的咖啡涼了很久，我才想起它',
+ platform:'月台的風穿過來，我還沒決定要上哪班車',fork:'路在前面分成兩邊，我站在中間看了很久',mist:'霧把遠方藏起來，只剩腳下幾步看得清楚',map:'地圖攤在眼前，每條線都像可能的方向',light:'綠燈亮了又暗，我還停在原來的路口',
+ seat:'身旁的位置空著，習慣卻還替誰留了一點空間',chat:'對話停在很久以前，我偶爾還是會往上翻',corner:'雨後經過熟悉街口，腳步突然慢了一點',box:'那個一直沒丟的東西，還安靜待在原位',back:'背影越來越遠，最後只剩一點模糊的光',
+ door:'門第一次在身後關上，我沒有再回頭確認',shirt:'那件舊衣服還在，只是已經不太像現在的我',mirror:'鏡子裡的人很熟悉，又有一點陌生',packing:'房間一點點被收空，才知道有些東西真的要留下',road:'我一個人走向另一條路，步伐還不算熟練',
+ walk:'吃完飯慢慢走回家，聊的都是明天會忘記的話',sunroom:'陽光剛好落進房間，普通得讓人想多待一下',store:'深夜便利商店的燈，把我們的笑照得很亮',laugh:'笑到停不下來的那一刻，時間好像也慢了',evening:'沒有安排的傍晚，反而剛好什麼都不缺',
+ bag:'行李箱還沒裝滿，心好像已經先出發',date:'日曆上那一天被圈起來，我每天都會多看一眼',ticket:'車票還躺在手機裡，目的地卻已經在腦中走過很多遍',predawn:'天還沒亮，我已經在想像下一個早晨',pins:'地圖上存滿小小的星號，像還沒發生的故事'};
+const weatherTone={sun:'光線把畫面照得很清楚',after:'雨後的空氣還留著一點濕潤',rain:'細小的雨聲把情緒拉得很近',fog:'遠處還看不清楚',storm:'遠方的雷聲讓安靜也有了重量',moon:'夜色把周圍的聲音慢慢收小'};
+const bridgeByEnd={quiet:['也許今晚不用想明白','先讓故事停在這裡就好'],release:['如果有些事真的帶不走','那就留一點位置給明天'],forward:['我還不知道前面會是什麼','但這一次想先走一步看看'],hold:['如果今天已經很努力了','那就先對自己溫柔一點'],remember:['不一定要讓什麼改變','我只想記得自己曾經這樣感受']};
+let step=0, sel={weather:null,state:null,truth:null,scene:null,end:null};
+const main=document.getElementById('main'),next=document.getElementById('next'),prev=document.getElementById('prev');
+function card(key,icon,title,desc=''){return `<div class="option-card" data-key="${key}"><span class="option-icon">${icon}</span><span class="option-label">${title}</span>${desc?`<span class="option-desc">${desc}</span>`:''}</div>`}
+function render(){document.getElementById('step-indicator-text').textContent=step===0?'INTRO':step<=5?`STEP ${step} / 5`:'RESULT';document.getElementById('progress-fill').style.width=(Math.min(step,5)/5*100)+'%';prev.style.visibility=step===0||step===6?'hidden':'visible';next.style.display=step===6?'none':'inline-flex';
+ if(step===0){main.innerHTML=`<section class="step-view active"><h1 class="step-title">如果現在的你，是一首還沒寫完的歌？</h1><p class="step-subtitle">不用樂理、不用會唱歌，也不用打字。跟著直覺按五次，看看你的心情會長成什麼樣的歌曲雛形。</p><div class="result-note">這是一個創作體驗。最後出現的文字只是<strong>歌詞概念草稿</strong>，不是完整歌詞。</div></section>`;next.textContent='開始 →'}
+ if(step===1){main.innerHTML=`<section class="step-view active"><h2 class="step-title">STEP 1｜今天的你，是什麼天氣？</h2><p class="step-subtitle">不用解釋，直覺選一個最接近現在感覺的天氣。</p><div class="option-grid">${weather.map(x=>card(x[0],x[1],x[2],x[3])).join('')}</div></section>`;bind('weather');next.textContent='下一步 →'}
+ if(step===2){main.innerHTML=`<section class="step-view active"><h2 class="step-title">STEP 2｜哪一句最像最近的你？</h2><p class="step-subtitle">不用想太久，選第一個有感覺的。</p><div class="option-grid">${states.map(x=>card(x[0],x[1],x[3],x[2])).join('')}</div></section>`;bind('state')}
+ if(step===3){let a=truths[sel.state];main.innerHTML=`<section class="step-view active"><h2 class="step-title">STEP 3｜如果可以說一句真心話……</h2><p class="step-subtitle">哪一句最接近你現在真正想說的？</p><div class="option-grid">${a.map((x,i)=>card(String(i),'♡',x)).join('')}</div></section>`;bind('truth')}
+ if(step===4){let a=scenes[sel.state];main.innerHTML=`<section class="step-view active"><h2 class="step-title">STEP 4｜如果這份心聲變成一個畫面……</h2><p class="step-subtitle">選一個最像你腦中畫面的瞬間。</p><div class="option-grid">${a.map(x=>card(x[0],x[1],x[2])).join('')}</div></section>`;bind('scene')}
+ if(step===5){main.innerHTML=`<section class="step-view active"><h2 class="step-title">STEP 5｜你希望這首歌最後怎麼唱？</h2><p class="step-subtitle">這會決定副歌之後，歌曲最後停在哪裡。</p><div class="option-grid">${endings.map(x=>card(x[0],x[1],x[2])).join('')}</div></section>`;bind('end');next.textContent='看看我的未完成歌曲 →'}
+ if(step===6) result();restore();}
+function bind(k){document.querySelectorAll('.option-card').forEach(el=>el.onclick=()=>{sel[k]=el.dataset.key;document.querySelectorAll('.option-card').forEach(x=>x.classList.remove('selected'));el.classList.add('selected')})}
+function restore(){if(step>=1&&step<=5){let k=['','weather','state','truth','scene','end'][step];document.querySelectorAll('.option-card').forEach(el=>{if(el.dataset.key===String(sel[k]))el.classList.add('selected')})}}
+function required(){let k=['','weather','state','truth','scene','end'][step];return step===0||sel[k]!=null}
+function title(){let h=hooks[sel.state][+sel.truth];let s=scenes[sel.state].find(x=>x[0]===sel.scene)[2];const names={tired:'先讓今天停一下',lost:'還沒決定哪一站',miss:'我還記得',change:'不是昨天的我',happy:'今天剛剛好',expect:'故事還沒開始'};return names[sel.state]+'｜'+s.replace(/的|還|一直|正在|沒有/g,'').slice(0,7)}
+function result(){let h=hooks[sel.state][+sel.truth],truth=truths[sel.state][+sel.truth],tone=weatherTone[sel.weather],b=bridgeByEnd[sel.end];let endLine={quiet:'今晚先不用回答',release:'有些東西可以慢慢放下',forward:'下一步不用很遠，也算出發',hold:'至少這一次，先站在自己這邊',remember:'就把這一刻留在歌裡'}[sel.end];main.innerHTML=`<section class="step-view active"><h2 class="step-title">🎵 你的「未完成歌曲」出現了</h2><div class="result-note">這不是一首已經寫完的歌。我們只是把你剛才的選擇，整理成一個<strong>歌詞概念草稿</strong>。<br><br>有些句子還可以改，有些故事還沒說完。<br><strong>剩下的地方，再讓我們一起完成。</strong></div><div class="song-result"><div class="song-label">暫定歌名</div><h2 class="step-title" style="margin:.2rem 0 1rem">《${title()}》</h2><div class="song-block"><div class="song-label">VERSE｜主歌概念</div><div class="song-lines">${sceneLines[sel.scene]}<br>${tone}<br>有些話沒有說出口，先留在這個畫面裡……</div></div><div class="song-block"><div class="song-label">CHORUS｜副歌概念</div><div class="song-lines"><span class="hook-line">${h}</span><br>${truth}<br><span class="hook-line">${h}</span><br>${endLine}……</div></div><div class="song-block"><div class="song-label">BRIDGE｜橋段概念</div><div class="song-lines">${b[0]}<br>${b[1]}<br>也許真正想說的，還不只這些……</div></div></div><div class="cta-row"><a class="btn btn-primary" href="https://lin.ee/y2WelP7">一起完成這首歌 →</a><button class="btn btn-secondary" id="again">再玩一次</button></div></section>`;document.getElementById('again').onclick=()=>{step=1;sel={weather:null,state:null,truth:null,scene:null,end:null};render()}}
+next.onclick=()=>{if(!required()){alert('先選一個最有感覺的答案 ♡');return}if(step<6){step++;render()}};prev.onclick=()=>{if(step>0){step--;render()}};render();
+const canvas=document.getElementById('bg-canvas'),ctx=canvas.getContext('2d');let p=[];function rs(){canvas.width=innerWidth;canvas.height=innerHeight;p=Array.from({length:42},()=>({x:Math.random()*innerWidth,y:Math.random()*innerHeight,r:Math.random()*2+1,vx:(Math.random()-.5)*.18,vy:(Math.random()-.5)*.18,a:Math.random()*.3+.08}))}function dr(){ctx.clearRect(0,0,canvas.width,canvas.height);p.forEach(q=>{q.x+=q.vx;q.y+=q.vy;if(q.x<0||q.x>innerWidth)q.vx*=-1;if(q.y<0||q.y>innerHeight)q.vy*=-1;ctx.beginPath();ctx.arc(q.x,q.y,q.r,0,Math.PI*2);ctx.fillStyle=`rgba(226,176,120,${q.a})`;ctx.fill()});requestAnimationFrame(dr)}addEventListener('resize',rs);rs();dr();
+</script></body></html>
